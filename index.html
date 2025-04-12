@@ -1,0 +1,752 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GameHub - Steam游戏清单站</title>
+    <!-- CDN加速 -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <style>
+        :root {
+            --primary-color: #1a9fff;
+            --secondary-color: #00c6ff;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f8f9fa;
+            color: #333;
+        }
+        .navbar {
+            background: linear-gradient(135deg, #171a21, #2a475e);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        .game-card {
+            transition: all 0.3s;
+            border-radius: 8px;
+            overflow: hidden;
+            margin-bottom: 20px;
+            background: white;
+            border: 1px solid #ddd;
+        }
+        .game-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+            border-color: var(--primary-color);
+        }
+        .game-badge {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+        }
+        .btn-steam {
+            background: linear-gradient(135deg, #1a9fff, #00c6ff);
+            border: none;
+            color: white;
+        }
+        .btn-steam:hover {
+            background: linear-gradient(135deg, #0088cc, #00a8d7);
+            color: white;
+        }
+        .btn-download {
+            background: linear-gradient(135deg, #5c4ac9, #8a2be2);
+            border: none;
+            color: white;
+        }
+        .btn-download:hover {
+            background: linear-gradient(135deg, #4b3aa8, #7b1fa2);
+            color: white;
+        }
+        .hero-section {
+            background: url('https://so1.360tres.com/t016a360c153eb820b8.png') center/cover;
+            padding: 120px 0;
+            position: relative;
+            color: white;
+            text-shadow: 1px 1px 3px rgba(0,0,0,0.5);
+        }
+        .hero-section::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.6);
+        }
+        .forum-card {
+            background: linear-gradient(135deg, #ff9a9e, #fad0c4);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        .dropdown-options {
+            display: none;
+            position: absolute;
+            background: white;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            border-radius: 8px;
+            z-index: 100;
+            width: 200px;
+        }
+        .show-options .dropdown-options {
+            display: block;
+        }
+        #searchResults {
+            position: absolute;
+            width: 100%;
+            z-index: 1000;
+            background: white;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            border-radius: 0 0 8px 8px;
+            max-height: 400px;
+            overflow-y: auto;
+            display: none;
+        }
+        .search-item {
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .search-item:hover {
+            background: #f5f5f5;
+        }
+        .loading-spinner {
+            display: none;
+            text-align: center;
+            padding: 10px;
+        }
+        .search-container {
+            position: relative;
+            width: 300px;
+        }
+        .search-container .form-control {
+            padding-right: 40px;
+        }
+        .search-container .search-icon {
+            position: absolute;
+            right: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #6c757d;
+            pointer-events: none;
+        }
+        .no-results {
+            min-height: 300px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        footer, footer a, footer .text-muted {
+            color: white !important;
+        }
+        footer a:hover {
+            color: var(--primary-color) !important;
+            text-decoration: none;
+        }
+        .announcement-badge {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            font-size: 10px;
+            padding: 2px 5px;
+        }
+        .announcement-item {
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+            background: white;
+            border: 1px solid #eee;
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+        .announcement-item:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            border-color: var(--primary-color);
+        }
+        .announcement-title {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 5px;
+            position: relative;
+            padding-right: 30px;
+        }
+        .announcement-date {
+            font-size: 12px;
+            color: #6c757d;
+        }
+        .announcement-preview {
+            color: #666;
+            font-size: 14px;
+            margin-top: 10px;
+        }
+        .announcement-container {
+            display: none;
+            padding: 80px 0;
+        }
+        .announcement-detail {
+            background: white;
+            border-radius: 8px;
+            padding: 30px;
+            border: 1px solid #eee;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .back-to-list {
+            cursor: pointer;
+            color: var(--primary-color);
+            margin-bottom: 20px;
+            display: inline-block;
+        }
+        .back-to-list:hover {
+            text-decoration: underline;
+        }
+        .new-badge {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            width: 8px;
+            height: 8px;
+            background-color: #ff4d4d;
+            border-radius: 50%;
+        }
+        .nav-announcement {
+            position: relative;
+        }
+        .nav-new-badge {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            width: 6px;
+            height: 6px;
+            background-color: #ff4d4d;
+            border-radius: 50%;
+        }
+    </style>
+</head>
+<body>
+    <!-- 导航栏 -->
+    <nav class="navbar navbar-expand-lg navbar-dark sticky-top">
+        <div class="container">
+            <a class="navbar-brand fw-bold" href="#">
+                <i class="bi bi-steam me-2"></i>GameHub
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item"><a class="nav-link active" href="#" id="homeLink"><i class="bi bi-house-door me-1"></i>首页</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#"><i class="bi bi-controller me-1"></i>游戏库</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#"><i class="bi bi-collection me-1"></i>清单下载</a></li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="forumDropdown" role="button" data-bs-toggle="dropdown">
+                            <i class="bi bi-people me-1"></i>论坛
+                        </a>
+                        <div class="dropdown-menu dropdown-menu-end">
+                            <div class="d-flex p-3" style="width: 350px;">
+                                <img src="https://pic1.imgdb.cn/item/679606c5d0e0a243d4f81340.png" class="rounded me-3" alt="菜玩论坛" style="width: 100px; height: 100px;">
+                                <div>
+                                    <h5>菜玩论坛</h5>
+                                    <p class="text-muted">游戏资源讨论社区</p>
+                                    <a href="https://www.caigamer.com" class="btn btn-sm btn-primary mt-2" target="_blank">立即访问</a>
+                                </div>
+                            </div>
+                        </div>
+                    </li>
+                    <li class="nav-item nav-announcement">
+                        <a class="nav-link" href="#" id="announcementLink">
+                            <i class="bi bi-megaphone me-1"></i>公告
+                            <span class="nav-new-badge"></span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="https://qm.qq.com/q/h5k7NFIJi0" target="_blank">
+                            <i class="bi bi-people-fill me-1"></i>加入粉丝群
+                        </a>
+                    </li>
+                </ul>
+                <div class="search-container">
+                    <input id="searchInput" class="form-control me-2" type="search" placeholder="搜索游戏名称或APPID..." autocomplete="off">
+                    <div class="search-icon">
+                        <i class="bi bi-search"></i>
+                    </div>
+                    <div id="searchResults"></div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 主内容区域 -->
+    <div id="mainContent">
+        <!-- 主界区域 -->
+        <section class="hero-section text-center">
+            <div class="container position-relative">
+                <h1 class="display-4 fw-bold mb-4">Steam游戏清单下载中心</h1>
+                <p class="lead mb-4">精选40000+款游戏清单下载 • 支持SteamTools一键入库</p>
+                <div class="d-flex justify-content-center gap-3">
+                    <a href="#games" class="btn btn-lg btn-steam px-4">
+                        <i class="bi bi-controller me-1"></i>浏览游戏
+                    </a>
+                    <a href="https://www.steamtools.net/" class="btn btn-lg btn-outline-light px-4" target="_blank">
+                        <i class="bi bi-download me-1"></i>下载SteamTools
+                    </a>
+                </div>
+            </div>
+        </section>
+
+        <!-- 游戏列表 -->
+        <div class="container py-5" id="games">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2 class="fw-bold mb-0"><i class="bi bi-fire me-2"></i>热门游戏</h2>
+                <div class="dropdown ms-auto">
+                    <button class="btn btn-outline-secondary dropdown-toggle" type="button" id="sortDropdown" data-bs-toggle="dropdown">
+                        <i class="bi bi-filter me-1"></i>排序方式
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <li><a class="dropdown-item" href="#">热门度</a></li>
+                        <li><a class="dropdown-item" href="#">最新发布</a></li>
+                        <li><a class="dropdown-item" href="#">玩家评价</a></li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="row g-4" id="gameContainer">
+                <!-- 游戏卡片将通过JavaScript动态加载 -->
+            </div>
+
+            <div class="text-center mt-5">
+                <button id="loadMoreBtn" class="btn btn-steam px-4">
+                    <i class="bi bi-arrow-clockwise me-1"></i>加载更多游戏
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 公告列表 -->
+    <div class="container announcement-container" id="announcements">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2 class="fw-bold mb-0"><i class="bi bi-megaphone me-2"></i>公告</h2>
+            <a href="#" class="btn btn-outline-secondary" id="backToHome">
+                <i class="bi bi-arrow-left me-1"></i>返回首页
+            </a>
+        </div>
+
+        <div id="announcementList">
+            <!-- 公告列表将通过JavaScript动态加载 -->
+        </div>
+    </div>
+
+    <!-- 公告详情 -->
+    <div class="container announcement-container" id="announcementDetail">
+        <div class="announcement-detail">
+            <div class="back-to-list" id="backToList">
+                <i class="bi bi-arrow-left"></i> 返回公告列表
+            </div>
+            <h3 id="detailTitle">关于本站</h3>
+            <p class="text-muted small mb-4" id="detailDate">发布日期：2025/4/12</p>
+            <div id="detailContent">
+                <p>本站刚刚创建，很多游戏没添加，想添加游戏可前往QQ粉丝群483644474或993080333内，@3636336117添加游戏哦</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- 页脚 -->
+    <footer class="bg-dark text-white py-5">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-4 mb-4">
+                    <h5><i class="bi bi-steam me-2"></i>GameHub</h5>
+                    <p>提供Steam游戏清单下载服务，仅供学习交流使用</p>
+                </div>
+                <div class="col-md-2 mb-4">
+                    <h5>快速链接</h5>
+                    <ul class="list-unstyled">
+                        <li><a href="#" id="footerHomeLink">首页</a></li>
+                        <li><a href="#">游戏库</a></li>
+                        <li><a href="#">清单下载</a></li>
+                        <li><a href="https://www.caigamer.com" target="_blank">菜玩论坛</a></li>
+                    </ul>
+                </div>
+                <div class="col-md-3 mb-4">
+                    <h5>相关资源</h5>
+                    <ul class="list-unstyled">
+                        <li><a href="https://store.steampowered.com" target="_blank">Steam官网</a></li>
+                        <li><a href="https://www.steamtools.net" target="_blank">SteamTools</a></li>
+                        <li><a href="https://steamdb.info" target="_blank">SteamDB</a></li>
+                    </ul>
+                </div>
+                <div class="col-md-3 mb-4">
+                    <h5>免责声明</h5>
+                    <p class="small">本站不存储任何游戏资源，所有清单文件均来自第三方开源项目。请支持正版游戏。</p>
+                </div>
+            </div>
+            <hr class="my-4 bg-secondary">
+            <div class="text-center small">
+                © 2025 Caiji-GameHub - 非官方Steam资源站 | 内容采集自Github
+            </div>
+        </div>
+    </footer>
+
+    <!-- CDN加速 -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // 游戏数据（示例数据，实际应通过API获取）
+        const gameDatabase = [
+            { appid: 2358720, name: "黑神话：悟空", type: "动作/RPG【年度大奖】", rating: 98 },
+            { appid: 1245620, name: "艾尔登法环", type: "开放世界", rating: 94 },
+            { appid: 1091500, name: "赛博朋克2077", type: "科幻/RPG", rating: 88 },
+            { appid: 814380, name: "只狼：影逝二度", type: "动作/忍者", rating: 95 },
+            { appid: 292030, name: "巫师3：狂猎", type: "奇幻/RPG", rating: 97 },
+            { appid: 1174180, name: "荒野大镖客：救赎2", type: "西部/冒险", rating: 90 },
+            { appid: 578080, name: "绝地求生", type: "大逃杀", rating: 85 },
+            { appid: 730, name: "CS:GO", type: "FPS", rating: 93 },
+            { appid: 570, name: "DOTA 2", type: "MOBA", rating: 91 },
+            { appid: 271590, name: "GTA V", type: "开放世界", rating: 96 },
+            { appid: 1817070, name: "漫威蜘蛛侠：重制版", type: "动作/开放世界", rating: 95 },
+            { appid: 1817190, name: "漫威蜘蛛侠：迈尔斯·莫拉莱斯", type: "动作/开放世界", rating: 92 },
+            { appid: 1151640, name: "地平线：零之曙光 完全版", type: "开放世界/RPG", rating: 89 },
+            { appid: 1850570, name: "地平线：西之绝境", type: "开放世界/RPG", rating: 88 },
+            { appid: 427100, name: "长途客车模拟", type: "模拟/驾驶", rating: 78 },
+            { appid: 3601790, name: "不吃香菜", type: "休闲/解谜", rating: 82 },
+            { appid: 2001120, name: "双影奇境", type: "冒险/解谜", rating: 85 },
+            { appid: 1551360, name: "极限竞速：地平线 5", type: "开放世界/RPG", rating: 91 },
+            { appid: 1293830, name: "极限竞速：地平线 4（已下架）", type: "开放世界/RPG", rating: 86 }
+
+
+
+        ];
+
+        // 公告数据
+        const announcements = [
+            {
+                id: 1,
+                title: "关于本站",
+                date: "2025/4/12",
+                content: "本站刚刚创建，很多游戏没添加，想添加游戏可前往QQ粉丝群483644474或993080333内，@3636336117添加游戏哦",
+                isNew: true
+            },
+            {
+                id: 2,
+                title: "网站更新公告",
+                date: "2025/4/10",
+                content: "我们已对网站进行了全面升级，优化了搜索功能和游戏展示效果。欢迎提出宝贵意见！",
+                isNew: false
+            },
+            {
+                id: 3,
+                title: "粉丝群（QQ）",
+                date: "2025/4/10",
+                content: "483644474（可能已满）与993080333",
+                isNew: false
+            },
+            {
+                id: 4,
+                title: "新增游戏清单",
+                date: "2025/4/10",
+                content: "本次更新新增了50款热门游戏清单，包括《漫威蜘蛛侠》系列、《地平线》系列等。",
+                isNew: false
+            },
+            {
+                id: 5,
+                title: "测试",
+                date: "2025/0/0",
+                content: "内容测试",
+                isNew: false
+            }
+        ];
+
+        // 当前显示的游戏数量
+        let displayedGames = 0;
+        const gamesPerLoad = 6;
+
+        // 初始化页面
+        function initPage() {
+            // 默认显示主内容
+            showMainContent();
+
+            // 初始化游戏列表
+            loadMoreGames();
+
+            // 加载更多按钮事件
+            document.getElementById('loadMoreBtn').addEventListener('click', loadMoreGames);
+
+            // 公告链接点击事件
+            document.getElementById('announcementLink').addEventListener('click', function(e) {
+                e.preventDefault();
+                showAnnouncementList();
+            });
+
+            // 首页链接点击事件
+            document.getElementById('homeLink').addEventListener('click', function(e) {
+                e.preventDefault();
+                showMainContent();
+            });
+
+            // 页脚首页链接点击事件
+            document.getElementById('footerHomeLink').addEventListener('click', function(e) {
+                e.preventDefault();
+                showMainContent();
+            });
+
+            // 返回首页按钮点击事件
+            document.getElementById('backToHome').addEventListener('click', function(e) {
+                e.preventDefault();
+                showMainContent();
+            });
+
+            // 返回列表按钮点击事件
+            document.getElementById('backToList').addEventListener('click', function(e) {
+                e.preventDefault();
+                showAnnouncementList();
+            });
+        }
+
+        // 显示主内容
+        function showMainContent() {
+            document.getElementById('mainContent').style.display = 'block';
+            document.getElementById('announcements').style.display = 'none';
+            document.getElementById('announcementDetail').style.display = 'none';
+
+            // 滚动到顶部
+            window.scrollTo(0, 0);
+        }
+
+        // 加载更多游戏
+        function loadMoreGames() {
+            const container = document.getElementById('gameContainer');
+            const endIndex = Math.min(displayedGames + gamesPerLoad, gameDatabase.length);
+
+            for (let i = displayedGames; i < endIndex; i++) {
+                const game = gameDatabase[i];
+                container.appendChild(createGameCard(game));
+            }
+
+            displayedGames = endIndex;
+
+            // 如果已显示所有游戏，隐藏加载更多按钮
+            if (displayedGames >= gameDatabase.length) {
+                document.getElementById('loadMoreBtn').style.display = 'none';
+            }
+        }
+
+        // 创建游戏卡片
+        function createGameCard(game) {
+            const col = document.createElement('div');
+            col.className = 'col-lg-4 col-md-6';
+
+            col.innerHTML = `
+                <div class="game-card card h-100">
+                    <img src="https://cdn.cloudflare.steamstatic.com/steam/apps/${game.appid}/header.jpg"
+                         class="card-img-top" loading="lazy" alt="${game.name}">
+                    <div class="card-body position-relative">
+                        ${game.rating > 90 ? `<span class="badge bg-danger game-badge">好评如潮</span>` : ''}
+                        <h5 class="card-title">${game.name}</h5>
+                        <p class="card-text text-muted">
+                            <i class="bi bi-star-fill text-warning"></i> ${game.rating}% 好评
+                            <span class="ms-3"><i class="bi bi-tag"></i> ${game.type}</span>
+                        </p>
+                        <div class="d-flex justify-content-between align-items-center mt-3">
+                            <span class="badge bg-dark">APPID: ${game.appid}</span>
+                            <div class="btn-group">
+                                <button class="btn btn-sm btn-steam dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                    前往
+                                </button>
+                                <ul class="dropdown-menu dropdown-menu-end">
+                                    <li>
+                                        <a class="dropdown-item" href="https://store.steampowered.com/app/${game.appid}" target="_blank">
+                                            <i class="bi bi-steam me-2"></i>Steam商店
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item" href="https://codeload.github.com/SteamAutoCracks/ManifestHub/zip/refs/heads/${game.appid}" target="_blank">
+                                            <i class="bi bi-download me-2"></i>清单下载
+                                        </a>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            return col;
+        }
+
+        // 显示公告列表
+        function showAnnouncementList() {
+            document.getElementById('mainContent').style.display = 'none';
+            document.getElementById('announcements').style.display = 'block';
+            document.getElementById('announcementDetail').style.display = 'none';
+
+            const container = document.getElementById('announcementList');
+            container.innerHTML = '';
+
+            announcements.forEach(announcement => {
+                const item = document.createElement('div');
+                item.className = 'announcement-item';
+                item.setAttribute('data-id', announcement.id);
+                item.innerHTML = `
+                    <div class="announcement-title">
+                        ${announcement.title}
+                        ${announcement.isNew ? '<span class="badge bg-danger ms-2">新</span>' : ''}
+                    </div>
+                    <div class="announcement-date">${announcement.date}</div>
+                    <div class="announcement-preview">
+                        ${announcement.content.substring(0, 60)}...
+                    </div>
+                `;
+
+                item.addEventListener('click', () => {
+                    showAnnouncementDetail(announcement.id);
+                });
+
+                container.appendChild(item);
+            });
+
+            window.scrollTo(0, 0);
+        }
+
+        // 显示公告详情
+        function showAnnouncementDetail(id) {
+            const announcement = announcements.find(a => a.id === id);
+            if (!announcement) return;
+
+            document.getElementById('detailTitle').textContent = announcement.title;
+            document.getElementById('detailDate').textContent = `发布日期：${announcement.date}`;
+            document.getElementById('detailContent').innerHTML = `<p>${announcement.content}</p>`;
+
+            document.getElementById('mainContent').style.display = 'none';
+            document.getElementById('announcements').style.display = 'none';
+            document.getElementById('announcementDetail').style.display = 'block';
+
+            window.scrollTo(0, 0);
+        }
+
+        // 搜索功能实现
+        document.getElementById('searchInput').addEventListener('input', function() {
+            const keyword = this.value.trim();
+            const resultsContainer = document.getElementById('searchResults');
+
+            if (keyword.length < 2) {
+                resultsContainer.style.display = 'none';
+                return;
+            }
+
+            // 显示加载动画
+            resultsContainer.innerHTML = '<div class="loading-spinner"><i class="bi bi-arrow-repeat spin"></i> 搜索中...</div>';
+            resultsContainer.style.display = 'block';
+
+            // 模拟API请求延迟
+            setTimeout(() => {
+                const results = gameDatabase.filter(game =>
+                    game.name.toLowerCase().includes(keyword.toLowerCase()) ||
+                    game.appid.toString().includes(keyword)
+                );
+
+                displaySearchResults(results);
+            }, 300);
+        });
+
+        // 显示搜索结果
+        function displaySearchResults(results) {
+            const container = document.getElementById('searchResults');
+
+            if (results.length === 0) {
+                container.innerHTML = '<div class="search-item">未找到匹配的游戏</div>';
+                return;
+            }
+
+            container.innerHTML = '';
+            results.slice(0, 10).forEach(game => {
+                const item = document.createElement('div');
+                item.className = 'search-item';
+                item.innerHTML = `
+                    <div class="d-flex align-items-center">
+                        <img src="https://cdn.cloudflare.steamstatic.com/steam/apps/${game.appid}/header.jpg"
+                             style="width: 50px; height: 25px; object-fit: cover; margin-right: 10px;">
+                        <div>
+                            <h6 class="mb-0">${game.name}</h6>
+                            <small class="text-muted">${game.type} • ${game.rating}% 好评 • APPID: ${game.appid}</small>
+                        </div>
+                    </div>
+                `;
+
+                item.addEventListener('click', () => {
+                    showSearchResults(game);
+                });
+
+                container.appendChild(item);
+            });
+        }
+
+        // 显示搜索结果页面
+        function showSearchResults(game) {
+            const gameContainer = document.getElementById('gameContainer');
+            gameContainer.innerHTML = '';
+            gameContainer.appendChild(createGameCard(game));
+            document.getElementById('loadMoreBtn').style.display = 'none';
+            document.getElementById('searchResults').style.display = 'none';
+            window.scrollTo(0, document.getElementById('games').offsetTop);
+        }
+
+        // 回车键提交搜索
+        document.getElementById('searchInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                const keyword = this.value.trim();
+                const resultsContainer = document.getElementById('searchResults');
+                resultsContainer.style.display = 'none';
+
+                if (keyword.length < 2) return;
+
+                const results = gameDatabase.filter(game =>
+                    game.name.toLowerCase().includes(keyword.toLowerCase()) ||
+                    game.appid.toString().includes(keyword)
+                );
+
+                if (results.length > 0) {
+                    // 显示搜索结果
+                    const gameContainer = document.getElementById('gameContainer');
+                    gameContainer.innerHTML = '';
+                    results.forEach(game => {
+                        gameContainer.appendChild(createGameCard(game));
+                    });
+                    document.getElementById('loadMoreBtn').style.display = 'none';
+                    window.scrollTo(0, document.getElementById('games').offsetTop);
+                } else {
+                    // 显示无结果提示
+                    const gameContainer = document.getElementById('gameContainer');
+                    gameContainer.innerHTML = `
+                        <div class="col-12 text-center py-5">
+                            <i class="bi bi-search display-4 text-muted mb-3"></i>
+                            <h4 class="mb-3">暂无与搜索内容相关的结果</h4>
+                            <p>可前往粉丝群内@3636336117进行添加！</p>
+                            <div class="d-flex justify-content-center gap-3 mt-4">
+                                <a href="https://qm.qq.com/q/h5k7NFIJi0" class="btn btn-steam" target="_blank">
+                                    <i class="bi bi-people-fill me-1"></i>加入粉丝群
+                                </a>
+                                <button class="btn btn-outline-secondary" onclick="showMainContent()">
+                                    <i class="bi bi-house-door me-1"></i>返回主界面
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                    document.getElementById('loadMoreBtn').style.display = 'none';
+                }
+            }
+        });
+
+        // 点击页面其他区域关闭搜索结果
+        document.addEventListener('click', function(e) {
+            if (!e.target.closest('#searchInput') && !e.target.closest('#searchResults')) {
+                document.getElementById('searchResults').style.display = 'none';
+            }
+        });
+
+        // 初始化
+        document.addEventListener('DOMContentLoaded', initPage);
+    </script>
+</body>
+</html>
