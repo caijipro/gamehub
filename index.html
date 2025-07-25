@@ -239,6 +239,63 @@
         @keyframes spin {
             100% { transform: rotate(360deg); }
         }
+        /* 广告样式 */
+        .ad-banner {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px 0;
+            text-align: center;
+        }
+        .ad-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 15px;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
+        }
+        .ad-text {
+            flex: 1;
+            min-width: 300px;
+        }
+        .ad-title {
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        .ad-description {
+            font-size: 1rem;
+            opacity: 0.9;
+        }
+        /* 广告弹窗样式 */
+        .ad-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 10000;
+            display: none;
+            align-items: center;
+            justify-content: center;
+        }
+        .ad-modal-content {
+            background: white;
+            border-radius: 10px;
+            padding: 30px;
+            max-width: 500px;
+            width: 90%;
+            text-align: center;
+        }
+        .ad-modal-buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin-top: 20px;
+        }
     </style>
 </head>
 <body>
@@ -312,6 +369,29 @@
             </div>
         </div>
     </nav>
+
+    <!-- 广告横幅 -->
+    <div class="ad-banner">
+        <div class="ad-content">
+            <div class="ad-text">
+                <div class="ad-title">菜玩俱乐部招募会员</div>
+                <div class="ad-description">减少折腾，时间留给游戏。永久会员支持实时更新，支持创意工坊，更有大量D加密游戏等你玩。</div>
+            </div>
+            <button id="adButton" class="btn btn-light btn-lg">前往了解</button>
+        </div>
+    </div>
+
+    <!-- 广告弹窗 -->
+    <div class="ad-modal" id="adModal">
+        <div class="ad-modal-content">
+            <h3>请选择操作</h3>
+            <p>您可以加入售前群咨询详情</p>
+            <div class="ad-modal-buttons">
+                <a href="https://qm.qq.com/q/5d9EXVzNOg" target="_blank" class="btn btn-primary">加入群聊（QQ）</a>
+                <button id="closeAdModal" class="btn btn-secondary">关闭</button>
+            </div>
+        </div>
+    </div>
 
     <!-- 主内容区域 -->
     <div id="mainContent">
@@ -444,43 +524,17 @@
           var agreeBtn = document.getElementById('agreeBtn');
           var disagreeBtn = document.getElementById('disagreeBtn');
           var neverShowAgain = document.getElementById('neverShowAgain');
-
-          // 判断是否需要弹窗
-          var neverShow = localStorage.getItem('user_agreement_never_show') === '1';
-          var agreed = localStorage.getItem('user_agreement_accepted') === '1';
-
-          function showAgreementModal() {
+          
+          // 检查用户是否已经同意过协议
+          var agreed = localStorage.getItem('user_agreement_accepted');
+          var neverShow = localStorage.getItem('user_agreement_never_show');
+          
+          if (!agreed || neverShow !== '1') {
             modal.style.display = 'flex';
-            document.body.style.overflow = 'hidden';
-          }
-          function hideAgreementModal() {
-            modal.style.display = 'none';
-            document.body.style.overflow = '';
-          }
-
-          // 只要没设置"下次不再提示"就弹窗
-          if (!neverShow) {
-            showAgreementModal();
           } else {
-            hideAgreementModal();
+            if (typeof window._realInitPage === 'function') window._realInitPage();
           }
-
-          // 禁止F12等快捷键
-          window.addEventListener('keydown', function(e) {
-            if (
-              e.key === 'F12' ||
-              (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.key === 'J' || e.key === 'C')) ||
-              (e.ctrlKey && e.key === 'U')
-            ) {
-              e.preventDefault();
-              return false;
-            }
-          });
-          // 禁止右键
-          window.addEventListener('contextmenu', function(e) {
-            e.preventDefault();
-          });
-
+          
           // 同意按钮
           agreeBtn.onclick = function() {
             localStorage.setItem('user_agreement_accepted', '1');
@@ -695,30 +749,102 @@
                 performSearch();
             });
 
-            // 搜索输入框回车事件
+            // 搜索框回车事件
             document.getElementById('searchInput').addEventListener('keypress', function(e) {
                 if (e.key === 'Enter') {
-                    e.preventDefault();
                     performSearch();
                 }
             });
 
-            // 点击页面其他区域关闭搜索结果
+            // 搜索框输入事件（实时搜索建议）
+            document.getElementById('searchInput').addEventListener('input', function() {
+                const keyword = this.value.trim();
+                const resultsContainer = document.getElementById('searchResults');
+
+                if (keyword.length < 1) {
+                    resultsContainer.style.display = 'none';
+                    return;
+                }
+
+                // 显示加载状态
+                resultsContainer.innerHTML = '<div class="loading-spinner"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div></div>';
+                resultsContainer.style.display = 'block';
+
+                // 模拟API请求延迟
+                setTimeout(() => {
+                    const results = gameDatabase.filter(game =>
+                        game.name.toLowerCase().includes(keyword.toLowerCase()) ||
+                        game.appid.toString().includes(keyword)
+                    );
+
+                    displaySearchResults(results);
+                }, 300);
+            });
+
+            // 点击页面其他地方关闭搜索结果
             document.addEventListener('click', function(e) {
-                if (!e.target.closest('#searchInput') && !e.target.closest('#searchResults') && !e.target.closest('#searchButton')) {
-                    document.getElementById('searchResults').style.display = 'none';
+                const searchContainer = document.querySelector('.search-container');
+                const resultsContainer = document.getElementById('searchResults');
+                
+                if (!searchContainer.contains(e.target)) {
+                    resultsContainer.style.display = 'none';
                 }
             });
 
-            // 滚动时显示/隐藏返回首页按钮
-            window.addEventListener('scroll', function() {
-                const backToHomeBtn = document.getElementById('backToHomeBtn');
-                if (window.scrollY > 300) {
-                    backToHomeBtn.style.display = 'block';
-                } else {
-                    backToHomeBtn.style.display = 'none';
+            // 广告按钮点击事件
+            document.getElementById('adButton').addEventListener('click', function() {
+                document.getElementById('adModal').style.display = 'flex';
+            });
+
+            // 关闭广告弹窗
+            document.getElementById('closeAdModal').addEventListener('click', function() {
+                document.getElementById('adModal').style.display = 'none';
+            });
+
+            // 点击广告弹窗外部关闭
+            document.getElementById('adModal').addEventListener('click', function(e) {
+                if (e.target === this) {
+                    this.style.display = 'none';
                 }
             });
+
+            // 返回顶部按钮事件
+            document.getElementById('backToHomeBtn').addEventListener('click', function() {
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            });
+
+            // 监听滚动事件显示/隐藏返回顶部按钮
+            window.addEventListener('scroll', function() {
+                const backToTopBtn = document.getElementById('backToHomeBtn');
+                if (window.scrollY > 300) {
+                    backToTopBtn.style.display = 'block';
+                } else {
+                    backToTopBtn.style.display = 'none';
+                }
+            });
+
+            // 图片加载失败处理
+            document.querySelectorAll('img').forEach(img => {
+                img.addEventListener('error', function() {
+                    this.src = 'https://via.placeholder.com/460x215?text=游戏封面加载失败';
+                    this.alt = '图片加载失败';
+                });
+            });
+
+            // 确保所有Bootstrap组件正确初始化
+            if (typeof bootstrap !== 'undefined') {
+                // 初始化所有下拉菜单
+                const dropdowns = [].slice.call(document.querySelectorAll('.dropdown-toggle'));
+                dropdowns.forEach(function(dropdownToggle) {
+                    new bootstrap.Dropdown(dropdownToggle);
+                });
+
+                // 初始化所有工具提示
+                const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+                tooltipTriggerList.map(function(tooltipTriggerEl) {
+                    return new bootstrap.Tooltip(tooltipTriggerEl);
+                });
+            }
         }
 
         // 执行搜索
@@ -916,137 +1042,66 @@
             window.scrollTo(0, 0);
         }
 
-        // 页面加载完成后初始化
-        document.addEventListener('DOMContentLoaded', function() {
-            // 只有同意协议后才初始化
-            if (localStorage.getItem('user_agreement_accepted') === '1') {
-                if (typeof window._realInitPage === 'function') window._realInitPage();
+        // 显示搜索结果
+        function displaySearchResults(results) {
+            const container = document.getElementById('searchResults');
+
+            if (results.length === 0) {
+                container.innerHTML = '<div class="search-item">未找到匹配的游戏</div>';
+                return;
             }
 
-            // 搜索功能实现
-            document.getElementById('searchInput').addEventListener('input', function() {
-                const keyword = this.value.trim();
-                const resultsContainer = document.getElementById('searchResults');
-
-                if (keyword.length < 2) {
-                    resultsContainer.style.display = 'none';
-                    return;
-                }
-
-                // 显示加载动画
-                resultsContainer.innerHTML = '<div class="loading-spinner"><i class="bi bi-arrow-repeat spin"></i> 搜索中...</div>';
-                resultsContainer.style.display = 'block';
-
-                // 模拟API请求延迟
-                setTimeout(() => {
-                    const results = gameDatabase.filter(game =>
-                        game.name.toLowerCase().includes(keyword.toLowerCase()) ||
-                        game.appid.toString().includes(keyword)
-                    );
-
-                    displaySearchResults(results);
-                }, 300);
-            });
-
-            // 显示搜索结果
-            function displaySearchResults(results) {
-                const container = document.getElementById('searchResults');
-
-                if (results.length === 0) {
-                    container.innerHTML = '<div class="search-item">未找到匹配的游戏</div>';
-                    return;
-                }
-
-                container.innerHTML = '';
-                results.slice(0, 10).forEach(game => {
-                    const item = document.createElement('div');
-                    item.className = 'search-item';
-                    item.innerHTML = `
-                        <div class="d-flex align-items-center">
-                            <img src="https://cdn.cloudflare.steamstatic.com/steam/apps/${game.appid}/header.jpg"
-                                 style="width: 50px; height: 25px; object-fit: cover; margin-right: 10px;">
-                            <div>
-                                <h6 class="mb-0">${game.name}</h6>
-                                <small class="text-muted">${game.type} • ${game.rating}% 好评 • APPID: ${game.appid}</small>
-                            </div>
+            container.innerHTML = '';
+            results.slice(0, 10).forEach(game => {
+                const item = document.createElement('div');
+                item.className = 'search-item';
+                item.innerHTML = `
+                    <div class="d-flex align-items-center">
+                        <img src="https://cdn.cloudflare.steamstatic.com/steam/apps/${game.appid}/header.jpg"
+                             style="width: 50px; height: 25px; object-fit: cover; margin-right: 10px;">
+                        <div>
+                            <h6 class="mb-0">${game.name}</h6>
+                            <small class="text-muted">${game.type} • ${game.rating}% 好评 • APPID: ${game.appid}</small>
                         </div>
-                    `;
+                    </div>
+                `;
 
-                    item.addEventListener('click', () => {
-                        showSearchResults(game);
-                        container.style.display = 'none';
-                    });
-
-                    container.appendChild(item);
-                });
-            }
-
-            // 显示搜索结果页面
-            function showSearchResults(game) {
-                const gameContainer = document.getElementById('gameContainer');
-                gameContainer.innerHTML = '';
-
-                // 创建游戏卡片
-                const gameCard = createGameCard(game);
-                gameContainer.appendChild(gameCard);
-
-                // 隐藏加载更多按钮
-                document.getElementById('loadMoreBtn').style.display = 'none';
-
-                // 显示返回首页按钮
-                document.getElementById('refreshPageBtn').style.display = 'block';
-
-                // 设置搜索状态
-                isSearching = true;
-
-                // 滚动到游戏区域
-                window.scrollTo({
-                    top: document.getElementById('games').offsetTop - 20,
-                    behavior: 'smooth'
+                item.addEventListener('click', () => {
+                    showSearchResults(game);
+                    container.style.display = 'none';
                 });
 
-                // 更新搜索输入框的值
-                document.getElementById('searchInput').value = game.name;
-            }
+                container.appendChild(item);
+            });
+        }
 
-            // 返回顶部按钮事件
-            document.getElementById('backToHomeBtn').addEventListener('click', function() {
-                window.scrollTo({ top: 0, behavior: 'smooth' });
+        // 显示搜索结果页面
+        function showSearchResults(game) {
+            const gameContainer = document.getElementById('gameContainer');
+            gameContainer.innerHTML = '';
+
+            // 创建游戏卡片
+            const gameCard = createGameCard(game);
+            gameContainer.appendChild(gameCard);
+
+            // 隐藏加载更多按钮
+            document.getElementById('loadMoreBtn').style.display = 'none';
+
+            // 显示返回首页按钮
+            document.getElementById('refreshPageBtn').style.display = 'block';
+
+            // 设置搜索状态
+            isSearching = true;
+
+            // 滚动到游戏区域
+            window.scrollTo({
+                top: document.getElementById('games').offsetTop - 20,
+                behavior: 'smooth'
             });
 
-            // 监听滚动事件显示/隐藏返回顶部按钮
-            window.addEventListener('scroll', function() {
-                const backToTopBtn = document.getElementById('backToHomeBtn');
-                if (window.scrollY > 300) {
-                    backToTopBtn.style.display = 'block';
-                } else {
-                    backToTopBtn.style.display = 'none';
-                }
-            });
-
-            // 图片加载失败处理
-            document.querySelectorAll('img').forEach(img => {
-                img.addEventListener('error', function() {
-                    this.src = 'https://via.placeholder.com/460x215?text=游戏封面加载失败';
-                    this.alt = '图片加载失败';
-                });
-            });
-
-            // 确保所有Bootstrap组件正确初始化
-            if (typeof bootstrap !== 'undefined') {
-                // 初始化所有下拉菜单
-                const dropdowns = [].slice.call(document.querySelectorAll('.dropdown-toggle'));
-                dropdowns.forEach(function(dropdownToggle) {
-                    new bootstrap.Dropdown(dropdownToggle);
-                });
-
-                // 初始化所有工具提示
-                const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-                tooltipTriggerList.map(function(tooltipTriggerEl) {
-                    return new bootstrap.Tooltip(tooltipTriggerEl);
-                });
-            }
-        });
+            // 更新搜索输入框的值
+            document.getElementById('searchInput').value = game.name;
+        }
 
         // 页面完全加载后执行
         window.addEventListener('load', function() {
@@ -1072,6 +1127,11 @@
 
             console.log('GameHub 页面加载完成');
         });
+
+        // 隐藏用户协议弹窗
+        function hideAgreementModal() {
+            document.getElementById('userAgreementModal').style.display = 'none';
+        }
     </script>
 </body>
 </html>
